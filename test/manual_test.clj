@@ -1,15 +1,15 @@
 (ns manual-test
   (:require [clojure.test :refer :all]
-            [sorting :as sorting]
-            [graphs :as graphs]
-            [dynamic :as dynamic]
-            [search :as search]))
+            [computational_algorithm_simulator.sorting :as sorting]
+            [computational_algorithm_simulator.graphs :as graphs]
+            [computational_algorithm_simulator.dynamic :as dynamic]
+            [computational_algorithm_simulator.search :as search]))
 
 (deftest quicksort-test
   (is (= (sorting/quicksort []) []))
   (is (= (sorting/quicksort [3 3 3 2 2 2]) [2 2 2 3 3 3]))
   (is (= (sorting/quicksort [9 8 7 6 5 4 3 2 1]) [1 2 3 4 5 6 7 8 9]))
-  (is (= (sorting/quicksort [8 1 5 9 2 7 3 4])) [1 2 3 4 5 7 8 9]))
+  (is (= (sorting/quicksort [8 1 5 9 2 7 3 4]) [1 2 3 4 5 7 8 9])))
 
 (deftest binary-search-test
   (is (= (search/binary-search [1 2 3 4 5 6 7 8 9] 5) 4))
