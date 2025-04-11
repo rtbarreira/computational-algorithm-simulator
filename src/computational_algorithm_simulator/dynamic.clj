@@ -1,4 +1,4 @@
-(ns dynamic)
+(ns computational_algorithm_simulator.dynamic)
 
 (defn fibonacci-memoized []
   (let [cache (atom {0 0, 1 1})]

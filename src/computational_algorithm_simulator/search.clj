@@ -1,4 +1,4 @@
-(ns search)
+(ns computational_algorithm_simulator.search)
 
 (defn binary-search [coll target]
   (loop [low 0 high (dec (count coll))]
