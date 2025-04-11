@@ -1,0 +1,35 @@
+<html>
+ <head>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <link rel="stylesheet" href="coverage.css"/>  <title> sorting.clj </title>
+ </head>
+ <body>
+<span class="covered" title="1 out of 1 forms covered">
+                001&nbsp;&nbsp;(ns&nbsp;sorting)
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                002&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                003&nbsp;&nbsp;(defn&nbsp;quicksort&nbsp;[coll]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                004&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(if&nbsp;(empty?&nbsp;coll)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                005&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                006&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[pivot&nbsp;(first&nbsp;coll)
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                007&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;smaller&nbsp;(filter&nbsp;#(&lt;=&nbsp;%&nbsp;pivot)&nbsp;(rest&nbsp;coll))
+                </span><br/>
+<span class="covered" title="9 out of 9 forms covered">
+                008&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;larger&nbsp;(filter&nbsp;#(&gt;&nbsp;%&nbsp;pivot)&nbsp;(rest&nbsp;coll))]
+                </span><br/>
+<span class="covered" title="10 out of 10 forms covered">
+                009&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(concat&nbsp;(quicksort&nbsp;smaller)&nbsp;[pivot]&nbsp;(quicksort&nbsp;larger)))))
+                </span><br/>
+ </body>
+</html>

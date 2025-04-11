@@ -1,0 +1,38 @@
+<html>
+ <head>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <link rel="stylesheet" href="coverage.css"/>  <title> graphs.clj </title>
+ </head>
+ <body>
+<span class="covered" title="1 out of 1 forms covered">
+                001&nbsp;&nbsp;(ns&nbsp;graphs)
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                002&nbsp;&nbsp;
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                003&nbsp;&nbsp;(defn&nbsp;bfs&nbsp;[graph&nbsp;start]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                004&nbsp;&nbsp;&nbsp;&nbsp;(loop&nbsp;[queue&nbsp;[start]&nbsp;visited&nbsp;#{}]
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                005&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(if&nbsp;(empty?&nbsp;queue)
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                006&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;visited
+                </span><br/>
+<span class="covered" title="4 out of 4 forms covered">
+                007&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(let&nbsp;[node&nbsp;(first&nbsp;queue)
+                </span><br/>
+<span class="covered" title="7 out of 7 forms covered">
+                008&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;neighbors&nbsp;(remove&nbsp;visited&nbsp;(get&nbsp;graph&nbsp;node&nbsp;[]))]
+                </span><br/>
+<span class="covered" title="1 out of 1 forms covered">
+                009&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(recur&nbsp;(concat&nbsp;(rest&nbsp;queue)&nbsp;neighbors)&nbsp;(conj&nbsp;visited&nbsp;node))))))
+                </span><br/>
+<span class="blank" title="0 out of 0 forms covered">
+                010&nbsp;&nbsp;
+                </span><br/>
+ </body>
+</html>
