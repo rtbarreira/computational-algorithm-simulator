@@ -1,4 +1,4 @@
-(ns sorting)
+(ns computational_algorithm_simulator.sorting)
 
 (defn quicksort [coll]
       (if (empty? coll)

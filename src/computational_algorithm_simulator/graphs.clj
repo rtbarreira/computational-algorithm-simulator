@@ -1,4 +1,4 @@
-(ns graphs)
+(ns computational_algorithm_simulator.graphs)
 
 (defn bfs [graph start]
   (loop [queue [start] visited #{}]
