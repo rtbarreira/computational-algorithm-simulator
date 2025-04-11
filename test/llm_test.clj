@@ -1,9 +1,9 @@
 (ns llm-test
   (:require [clojure.test :refer :all]
-            [sorting :as sorting]
-            [graphs :as graphs]
-            [dynamic :as dynamic]
-            [search :as search]))
+            [computational_algorithm_simulator.sorting :as sorting]
+            [computational_algorithm_simulator.graphs :as graphs]
+            [computational_algorithm_simulator.dynamic :as dynamic]
+            [computational_algorithm_simulator.search :as search]))
 
 (deftest test-quicksort
   (is (= (sorting/quicksort [5 2 9 1 5 6]) [1 2 5 5 6 9])))
