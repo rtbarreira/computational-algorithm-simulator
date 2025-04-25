@@ -13,6 +13,7 @@
 
 (deftest binary-search-test
   (is (= (search/binary-search [1 2 3 4 5 6 7 8 9] 5) 4))
+  (is (= (search/binary-search [1 2 3] 1) 0))
   (is (= (search/binary-search [7 4 3 0 1 8 2] 2) -1)))
 
 (deftest fibonacci-memoized-test
