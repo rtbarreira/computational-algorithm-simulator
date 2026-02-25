@@ -1,0 +1,1833 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -112,
+        -16
+      ],
+      "id": "3d0e9552-35d9-4613-811e-152267fea647",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "fileSelector": "={{ $json[\"path\"] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        784,
+        -32
+      ],
+      "id": "2944ae2c-88c7-49d0-91dd-a27b9147c573",
+      "name": "Read/Write Files from Disk",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "command": "find /data/computational-algorithm-simulator -type f\n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        160,
+        -16
+      ],
+      "id": "65295b57-c2b4-4ded-a92f-568f87070c8e",
+      "name": "Execute Command"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "40f5be41-8ab1-4d17-b6e2-d6d633acc67e",
+              "leftValue": "={{ $json[\"path\"] }}",
+              "rightValue": ".clj",
+              "operator": {
+                "type": "string",
+                "operation": "endsWith"
+              }
+            },
+            {
+              "id": "0cfe0651-d32e-45fe-94b5-55b15056a8fe",
+              "leftValue": "={{ $json[\"path\"] }}",
+              "rightValue": "project.clj",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        528,
+        -16
+      ],
+      "id": "ad460070-0a38-4fa7-b1b7-0a5181d85147",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "// $json[\"output\"] contém todos os arquivos separados por \\n\nconst lines = $input.first().json.stdout.split(\"\\n\");\n\n// Retorna um array de itens, cada item com um caminho\nreturn lines.map(line => ({ json: { path: line } }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        336,
+        -16
+      ],
+      "id": "0504f6b3-eb4c-435a-98d7-7b8e59b0479e",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:5000/coverage",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1024,
+        -32
+      ],
+      "id": "f343d926-5dee-4aa4-947c-e287c9607bb7",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:5000/coverage/report",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1440,
+        -32
+      ],
+      "id": "2e90c2b9-d92b-4843-b2fe-74fa9b6b654e",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "fee55028-db3e-4f7f-b6e3-606de1c8c0f7",
+              "leftValue": "={{ $json.formsPercent }}",
+              "rightValue": 100,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "95c21b52-95e1-407d-af42-774af4f770d9",
+              "leftValue": "={{ $json.linesPercent }}",
+              "rightValue": 100,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1824,
+        -32
+      ],
+      "id": "d13e0f29-dd5e-43e9-88c8-9f2cd44aecea",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=TASK: Generate a single, compilable Clojure test namespace achieving 100% line, branch, and function coverage.\n\nSOURCE CODE BLOCKS:\n{{ $json.files.map(file => file.content).join(\"\\n\\n\") }}\n\n===\n\nTEST NAMESPACE REQUIREMENTS:\n- Test namespace: llm-test\n- Test file path: test/llm_test.clj\n- Require all four namespaces with aliases.\n\n===\n\nFORMAT CONSTRAINTS:\n- Output ONLY a single ```clojure code block\n- No comments, no markdown, no explanations outside code\n- Use ONLY clojure.test primitives: deftest, testing, is\n- Every assertion: (is (= expected (alias/function args)))\n- For functions returning functions: (let [f (dyn/fibonacci-memoized)] (is (...)))\n- No random data, no generative testing, no external dependencies\n\n===\n\nVALIDATION CHECKLIST (self-verify before output):\n- [ ] Compiles without errors\n- [ ] All four namespaces required with correct aliases\n- [ ] Each public function has ≥1 deftest\n- [ ] Every branch from source code is exercised\n- [ ] All assertions use = for value comparison\n- [ ] Test data is deterministic and repeatable\n- [ ] No TODOs or placeholder comments\n- [ ] Code is ready for (clojure.test/run-tests)\n\n===\n\nDeliver the complete test namespace now.",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        2640,
+        48
+      ],
+      "id": "0c4ad021-ab5d-4b4e-8c7b-199dfc7b7599",
+      "name": "AI Agent",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "test"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        2672,
+        304
+      ],
+      "id": "868715f1-66f3-4ffe-baef-46dee635d0c7",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:5000/mutation",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4352,
+        -528
+      ],
+      "id": "35957eb3-9a45-4780-ac48-1c5f643d93de",
+      "name": "HTTP Request2"
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:5000/mutation/log",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4608,
+        -528
+      ],
+      "id": "a97d07b1-e68d-44b7-a799-9b0f359c95a5",
+      "name": "HTTP Request3"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pega o HTML\nconst html = $input.first().json.data;\n\n// Extrai todos os valores percentuais da coluna \"with-number\"\nconst matches = [...html.matchAll(/<td class=\"with-number\">([\\d.,]+) %<\\/td>/g)]\n  .map(m => parseFloat(m[1].replace(',', '.')));\n\n// Normalmente os dois últimos valores são \"Forms %\" e \"Lines %\" totais\nconst formsPercent = matches[matches.length - 2];  // Forms %\nconst linesPercent = matches[matches.length - 1];  // Lines %\n\n// Retorna para o n8n como campos separados\nreturn { formsPercent, linesPercent };\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1648,
+        -32
+      ],
+      "id": "6f53129b-e932-4039-9970-7a71425135a8",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      files: $input.all().map(item => {\n        const content = Buffer.from(item.binary.data.data, 'base64').toString('utf8');\n        // Extrai o namespace usando regex\n        const nsMatch = content.match(/\\(ns\\s+([^\\s\\)]+)/);\n        const ns = nsMatch ? nsMatch[1] : \"\";\n        return {\n          name: item.json.fileName,\n          content: content,\n          path: ns\n        };\n      })\n    }\n  }\n];\n\n\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1216,
+        368
+      ],
+      "id": "57602535-b182-473c-96b6-5a751e3a04ee",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2512,
+        256
+      ],
+      "id": "2393ab03-86c6-4967-a468-a434d97ae47b",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "UyIgWiskUuHLnAdQ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\t\"name\": \"California\",\n\t\"data\": \"Los Angeles\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        2912,
+        304
+      ],
+      "id": "fdc56f82-9c8e-423c-bf4e-c78236891e87",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:5000/tests",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5456,
+        432
+      ],
+      "id": "9836436c-f117-4acd-9724-6718554bfc01",
+      "name": "HTTP Request4"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=TEST SUITE VALIDATION & CORRECTION PROMPT\n\nTASK: Analyze and fix the provided test file to ensure it compiles and runs correctly against the source code. Return ONLY corrected code.\n\nPROBLEM STATEMENT:\n{{ $json.stderr }}\n\nVALIDATION TASK:\nAnalyze the provided TEST CODE against the SOURCE CODE and either:\n1. Confirm it's correct and ready to run (no changes needed)\n2. Fix ALL compilation, syntax, or logic errors\n3. Report the corrected code.\n\n===\n\nSOURCE CODE and TEST CODE TO FIX:\n{{ $json.files.map(file => file.content).join(\"\\n\\n\") }}\n\nERROR CATEGORIES TO DETECT & FIX:\n\n1. **NAMESPACE/File Mismatch**\n   - Rule: Namespace `a-b.c-d` → File `a_b/c_d.clj`\n   - Expected: `computational-algorithm-simulator.test-suite`\n   - File must be: `computational_algorithm_simulator/test_suite.clj`\n\n2. **Syntax Errors**\n   - Unbalanced delimiters: (), [], {}, #{}\n   - Invalid reader macros or malformed literals\n   - Undefined vars or incorrect aliases\n\n3. **Dependency Errors**\n   - Missing :require for any source namespace\n   - Wrong alias references in test calls\n\n4. **Test Definition Errors**\n   - Missing deftest for any public function\n   - Tests that don't call the function under test\n   - Non-deterministic test data (random, timestamps, etc.)\n\n5. **Assertion Errors**\n   - Assertions without explicit expected values\n   - Using (is result) instead of (is (= expected result))\n   - Side effects in assertions\n\n===\n\nVALIDATION PROTOCOL:\n\nPerform static analysis in this exact order:\n\n1. Parse namespace form → extract namespace name and requires\n2. Verify namespace → filename mapping convention\n3. Scan for syntax errors (balance check, undefined symbols)\n4. Cross-reference requires against source namespaces\n5. Map deftest names to source functions\n6. Identify all conditional branches in source\n7. Trace test inputs to verify branch coverage\n8. Flag any non-literal test data\n\n===\n\nOUTPUT DECISION TREE:\n\nIF ANY errors detected in steps 1-8:\n  → Return ONLY the COMPLETE corrected code block\n  → Preserve original test logic and coverage intent\n  → Fix ALL errors simultaneously\n  → Use proper namespace and file naming\n  → Format: ```clojure [complete fixed namespace] ```\n\nIF ZERO errors detected:\n  → Return EXACTLY: VALID_NO_ERRORS\n\nNO explanations, NO partial fixes, NO commentary.\n\n===\n\nSELF-CHECK BEFORE OUTPUT:\n- [ ] Code compiles with `clojure -e \"(require 'computational-algorithm-simulator.test-suite)\"`\n- [ ] All source namespaces are correctly required\n- [ ] Every public function has ≥1 test\n- [ ] All assertions use (= expected actual) form\n- [ ] Namespace matches file naming convention\n- [ ] No random or non-deterministic data\n\n\nOUTPUT FORMAT:\nReturn ONLY a JSON object with these exact fields (no markdown, no commentary):\n\n```json\n{\n\t\"name\": \"California\",\n\t\"data\": \"Los Angeles\"\n}\n{\n  \"name\": \"test/computational_algorithm_simulator.llm_test.clj\",\n  \"data\": \"code\"\n}\n",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        4832,
+        720
+      ],
+      "id": "62a23696-5f83-4ffc-8798-a0ed1d7e549f",
+      "name": "AI Agent2",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        4752,
+        960
+      ],
+      "id": "8990c53c-1609-4d8a-8d41-e651daa443ad",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "UyIgWiskUuHLnAdQ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\t\"name\": \"California\",\n\t\"data\": \"Los Angeles\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        5024,
+        960
+      ],
+      "id": "93dbdbcb-06ac-4dcc-b991-f5e2baa587cf",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "test2"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        4912,
+        960
+      ],
+      "id": "1b47df2c-7726-46a7-9bd0-d720c6438488",
+      "name": "Simple Memory2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "bc6b8d86-765c-41fe-9531-d8e1095fd4c6",
+              "leftValue": "={{ $json.stderr }}",
+              "rightValue": "\"\"",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "62c954dd-5e56-4419-b308-3a4658ae967a",
+              "leftValue": "={{ $json.stdout }}",
+              "rightValue": "=0 failures, 0 errors.",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        5744,
+        432
+      ],
+      "id": "dbc9e9d3-ddad-4bd8-9b5b-ae71ba53f827",
+      "name": "If3"
+    },
+    {
+      "parameters": {
+        "fileSelector": "={{ $json[\"path\"] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        3616,
+        656
+      ],
+      "id": "8ecc901c-01f0-4d5c-be3b-c372d96bfb0b",
+      "name": "Read/Write Files from Disk1",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "command": "find /data/computational-algorithm-simulator -type f\n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        3040,
+        672
+      ],
+      "id": "647662bf-86a6-4ab5-9be4-fe71231b90d1",
+      "name": "Execute Command1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "40f5be41-8ab1-4d17-b6e2-d6d633acc67e",
+              "leftValue": "={{ $json[\"path\"] }}",
+              "rightValue": ".clj",
+              "operator": {
+                "type": "string",
+                "operation": "endsWith"
+              }
+            },
+            {
+              "id": "0cfe0651-d32e-45fe-94b5-55b15056a8fe",
+              "leftValue": "={{ $json[\"path\"] }}",
+              "rightValue": "project.clj",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3392,
+        672
+      ],
+      "id": "a5caacf9-13c5-4b30-abb6-5bd8ca2c66bc",
+      "name": "If4"
+    },
+    {
+      "parameters": {
+        "jsCode": "// $json[\"output\"] contém todos os arquivos separados por \\n\nconst lines = $input.first().json.stdout.split(\"\\n\");\n\n// Retorna um array de itens, cada item com um caminho\nreturn lines.map(line => ({ json: { path: line } }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3216,
+        672
+      ],
+      "id": "4b980d1e-436b-4901-bde9-c5655407395f",
+      "name": "Code in JavaScript4"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      fileName: $input.first().json.output.name // nome do arquivo\n    },\n    binary: {\n      data: {\n        data: Buffer.from($input.first().json.output.data, 'utf8').toString('base64'), // conteúdo em base64\n        fileName: $input.first().json.output.name, // nome do arquivo\n        mimeType: 'text/plain' // tipo MIME\n      }\n    }\n  }\n];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5136,
+        704
+      ],
+      "id": "a33e4230-d55f-412c-ae32-48065eec4581",
+      "name": "Code in JavaScript5"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "/data/computational-algorithm-simulator/test/llm_test.clj",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        5312,
+        720
+      ],
+      "id": "dd90ee64-0a2d-4bcd-a205-938b4697434b",
+      "name": "Read/Write Files from Disk4"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      files: $input.all().map(item => {\n        const content = Buffer.from(item.binary.data.data, 'base64').toString('utf8');\n        // Extrai o namespace usando regex\n        const nsMatch = content.match(/\\(ns\\s+([^\\s\\)]+)/);\n        const ns = nsMatch ? nsMatch[1] : \"\";\n        return {\n          name: item.json.fileName,\n          content: content,\n          path: ns\n        };\n      })\n    }\n  }\n];\n\n\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3792,
+        656
+      ],
+      "id": "50a8ec37-73ce-47cc-87ed-9f47052211e3",
+      "name": "Code in JavaScript6"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        4128,
+        656
+      ],
+      "id": "f4300923-3bf0-4c68-9d99-eed367cc029b",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "/data/computational-algorithm-simulator/test/llm_test.clj",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        4560,
+        288
+      ],
+      "id": "2ec2f933-3c82-4617-8b02-5b069f2ec870",
+      "name": "Read/Write Files from Disk5"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      fileName: $input.first().json.output.name // nome do arquivo\n    },\n    binary: {\n      data: {\n        data: Buffer.from($input.first().json.output.data, 'utf8').toString('base64'), // conteúdo em base64\n        fileName: $input.first().json.output.name, // nome do arquivo\n        mimeType: 'text/plain' // tipo MIME\n      }\n    }\n  }\n];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4336,
+        208
+      ],
+      "id": "89d565c1-32c7-484d-9161-a9d500b10e27",
+      "name": "Code in JavaScript7"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2048,
+        256
+      ],
+      "id": "79dcdbc7-aad0-404b-9d19-6f58b53082cd",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "fileSelector": "={{ $json[\"path\"] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        4064,
+        -528
+      ],
+      "id": "af417740-d776-417a-ac56-7840bf43ba6e",
+      "name": "Read/Write Files from Disk2",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "command": "find /data/computational-algorithm-simulator -type f\n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        3440,
+        -512
+      ],
+      "id": "cd546219-2ec7-4724-86a4-1828e23afc21",
+      "name": "Execute Command2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "40f5be41-8ab1-4d17-b6e2-d6d633acc67e",
+              "leftValue": "={{ $json[\"path\"] }}",
+              "rightValue": ".clj",
+              "operator": {
+                "type": "string",
+                "operation": "endsWith"
+              }
+            },
+            {
+              "id": "0cfe0651-d32e-45fe-94b5-55b15056a8fe",
+              "leftValue": "={{ $json[\"path\"] }}",
+              "rightValue": "project.clj",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3808,
+        -512
+      ],
+      "id": "fd1135ec-84bc-4e5e-9d24-a1d5f7f188b5",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// $json[\"output\"] contém todos os arquivos separados por \\n\nconst lines = $input.first().json.stdout.split(\"\\n\");\n\n// Retorna um array de itens, cada item com um caminho\nreturn lines.map(line => ({ json: { path: line } }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3616,
+        -512
+      ],
+      "id": "31d9b0cb-e02a-4dc7-a6bc-deafc0885251",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "fee55028-db3e-4f7f-b6e3-606de1c8c0f7",
+              "leftValue": "={{ $json.results[0].percentage }}",
+              "rightValue": 95,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        4992,
+        -528
+      ],
+      "id": "71d44c3d-ad4b-4529-a095-0823752e8de2",
+      "name": "If5"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json.data;\n\n// Garante que é texto\nconst text = typeof data === \"string\" ? data : JSON.stringify(data);\n\n// Captura grupos: survivors e total de mutants\nconst matches = [...text.matchAll(/(\\d+)\\s+survivors out of\\s+(\\d+)\\s+mutants/g)];\n\nconst results = matches.map(m => {\n  const survivors = parseInt(m[1], 10);\n  const total = parseInt(m[2], 10);\n  const killed = total - survivors;\n  const percentage = total > 0 ? (killed / total) * 100 : 0;\n\n  return {\n    survivors,\n    total,\n    killed,\n    percentage: Number(percentage.toFixed(2)) // duas casas decimais\n  };\n});\n\nreturn [\n  {\n    json: {\n      results\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4816,
+        -528
+      ],
+      "id": "41eb50cd-049b-4be3-8d4c-5c99a452a194",
+      "name": "Code in JavaScript8",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=\"Generate only new white-box tests in Clojure using clojure.test, designed specifically to kill all surviving mutants in the source code{{ $json.files.map(file => file.content).join(\"\\n\\n\") }} and \n\nYou MUST generate a new test file, separate from the existing one (llm_test).\nThis new file must contain only the newly created tests.\nDo NOT reuse, modify, or depend on the existing test file.\nDo NOT duplicate any tests already provided in previous outputs.\n\nREQUIRED OUTPUT FORMAT:\n\nOutput MUST NOT be empty.\n\nOutput MUST contain:\n\nA valid Clojure (ns ...) test namespace, AND\n\nOne or more new (deftest ...) blocks that kill surviving mutants.\n\nIf absolutely no new tests are needed, return the exact sentinel:\n__NO_NEW_TESTS__\n\nOutput must contain ONLY Clojure code:\nNo comments, no markdown, no text outside the namespace.\n\nNAMESPACE REQUIREMENTS:\n\nCreate a NEW test namespace using:\ncontext.test_namespace\n\nThe test file will be created at:\ntest/context.test_path\n\nRequire every namespace found in the source code.\n\nUse short aliases (dyn, g, s, util), unless other aliases were explicitly provided.\n\nTEST REQUIREMENTS:\n\nAll tests must use deftest, testing, and is.\n\nTests must directly call the actual functions (no mocks, no redefs).\n\nEach test must be deterministic and repeatable.\n\nFor each surviving mutant:\n\nGenerate inputs that force divergence between the correct implementation and the mutated version.\n\nInclude edge cases for operator replacement, constant replacement, swapped comparators, negated predicates, removed function calls, off-by-one errors, and control-flow mutations.\n\nFUNCTION RETURNING FUNCTIONS:\n\nIf a function returns another function, capture it with let and evaluate it.\n\nAMBIGUITY HANDLING:\n\nIf behavior is unclear, infer the most plausible interpretation.\n\nIf behavior is impossible to infer, generate deterministic placeholder inputs and include a (TODO ...) expression inside the test.\n\nSTRICT NON-EMPTY OUTPUT POLICY:\n\nThe model must NEVER return an empty string.\n\nIf no new tests are needed, return ONLY:\n__NO_NEW_TESTS__\n\nVALID OUTPUT EXAMPLES:\n\nA complete namespace + tests:\n\n(ns myproject.mutant-tests\n(:require [myproject.core :as c]))\n\n(deftest foo-kills-mutant\n(testing \"normal case\"\n(is (= 42 (c/foo 1 2)))))\n\nOR\n\nIf no tests must be added:\nNO_NEW_TESTS\n\nALLOWED OUTPUT:\n\nOnly the namespace and tests described above, or the sentinel token. Nothing else.\"",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        5584,
+        -432
+      ],
+      "id": "e3782874-4874-4515-a67a-474ba40d639b",
+      "name": "AI Agent1",
+      "retryOnFail": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "test"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        5616,
+        -176
+      ],
+      "id": "dd7b7930-4fc9-438f-86f2-59b1a02ee0e9",
+      "name": "Simple Memory1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        5456,
+        -224
+      ],
+      "id": "492dcb38-ad1f-472a-823d-db93cc5b2594",
+      "name": "Google Gemini Chat Model2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "UyIgWiskUuHLnAdQ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\t\"name\": \"California\",\n\t\"data\": \"Los Angeles\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        5856,
+        -176
+      ],
+      "id": "ae065c58-4e8b-4440-82fe-04eba962cf85",
+      "name": "Structured Output Parser2"
+    },
+    {
+      "parameters": {
+        "fileSelector": "={{ $json[\"path\"] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        6560,
+        176
+      ],
+      "id": "b26162d7-44e5-444f-9fd7-688c3665c5e7",
+      "name": "Read/Write Files from Disk3",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "command": "find /data/computational-algorithm-simulator -type f\n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        5984,
+        192
+      ],
+      "id": "d1c6b2f2-ce1f-4a23-ab87-ca43c03c4bc6",
+      "name": "Execute Command3"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "40f5be41-8ab1-4d17-b6e2-d6d633acc67e",
+              "leftValue": "={{ $json[\"path\"] }}",
+              "rightValue": ".clj",
+              "operator": {
+                "type": "string",
+                "operation": "endsWith"
+              }
+            },
+            {
+              "id": "0cfe0651-d32e-45fe-94b5-55b15056a8fe",
+              "leftValue": "={{ $json[\"path\"] }}",
+              "rightValue": "project.clj",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        6336,
+        192
+      ],
+      "id": "7eca8534-cdb5-489e-8038-2adc1f2ebb08",
+      "name": "If6"
+    },
+    {
+      "parameters": {
+        "jsCode": "// $json[\"output\"] contém todos os arquivos separados por \\n\nconst lines = $input.first().json.stdout.split(\"\\n\");\n\n// Retorna um array de itens, cada item com um caminho\nreturn lines.map(line => ({ json: { path: line } }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6160,
+        192
+      ],
+      "id": "4a026d40-d398-436c-934f-336549dfe53d",
+      "name": "Code in JavaScript9"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      files: $input.all().map(item => {\n        const content = Buffer.from(item.binary.data.data, 'base64').toString('utf8');\n        // Extrai o namespace usando regex\n        const nsMatch = content.match(/\\(ns\\s+([^\\s\\)]+)/);\n        const ns = nsMatch ? nsMatch[1] : \"\";\n        return {\n          name: item.json.fileName,\n          content: content,\n          path: ns\n        };\n      })\n    }\n  }\n];\n\n\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6736,
+        176
+      ],
+      "id": "a1d0ac7f-5cf2-4186-b403-e11b82916f23",
+      "name": "Code in JavaScript10"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        7072,
+        176
+      ],
+      "id": "c8ad7aab-40aa-4921-956a-c563bf639853",
+      "name": "Merge2"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      files: $input.all().map(item => {\n        const content = Buffer.from(item.binary.data.data, 'base64').toString('utf8');\n        // Extrai o namespace usando regex\n        const nsMatch = content.match(/\\(ns\\s+([^\\s\\)]+)/);\n        const ns = nsMatch ? nsMatch[1] : \"\";\n        return {\n          name: item.json.fileName,\n          content: content,\n          path: ns\n        };\n      })\n    }\n  }\n];\n\n\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4288,
+        -128
+      ],
+      "id": "469fba88-637c-4214-91fa-d8fcc273447a",
+      "name": "Code in JavaScript11"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 3,
+        "options": {
+          "includeUnpaired": true
+        }
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        5168,
+        -176
+      ],
+      "id": "84f86109-54d7-46f8-bbd6-4fdaa8ce3b62",
+      "name": "Merge3",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:5000/tests",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        7920,
+        -160
+      ],
+      "id": "c691ba7b-fb1d-4129-94eb-1f3743fd03cd",
+      "name": "HTTP Request5"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=O erro {{ $json.stderr }}foi criado pelo arquivo de testes llm_test. Veja se esse arquivo está funcionando corretamente com base no resto do codigo. O llm_test deve criar testes para os arquivos .clj do repositório {{ $json.files.map(file => file.content).join(\"\\n\\n\") }}. Retorne o código corrigido e nada mais",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        7344,
+        176
+      ],
+      "id": "2dd8cc59-3e24-4ea3-9d87-3981274966fa",
+      "name": "AI Agent3",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        7264,
+        416
+      ],
+      "id": "1d6a4f11-5906-452e-9175-e05fd8488bd7",
+      "name": "Google Gemini Chat Model3",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "UyIgWiskUuHLnAdQ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\t\"name\": \"California\",\n\t\"data\": \"Los Angeles\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        7536,
+        416
+      ],
+      "id": "9a092ed7-dcbb-445e-8650-bfcb27b7b5a1",
+      "name": "Structured Output Parser3"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "test2"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        7424,
+        416
+      ],
+      "id": "4674e713-6a53-4260-89d9-759d84a53523",
+      "name": "Simple Memory3"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "bc6b8d86-765c-41fe-9531-d8e1095fd4c6",
+              "leftValue": "={{ $json.stderr }}",
+              "rightValue": "\"\"",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "62c954dd-5e56-4419-b308-3a4658ae967a",
+              "leftValue": "={{ $json.stdout }}",
+              "rightValue": "=0 failures, 0 errors.",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        8256,
+        -112
+      ],
+      "id": "78491884-59d1-41ef-9af8-ecf2f345b488",
+      "name": "If7"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      fileName: $input.first().json.output.name // nome do arquivo\n    },\n    binary: {\n      data: {\n        data: Buffer.from($input.first().json.output.data, 'utf8').toString('base64'), // conteúdo em base64\n        fileName: $input.first().json.output.name, // nome do arquivo\n        mimeType: 'text/plain' // tipo MIME\n      }\n    }\n  }\n];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        7648,
+        160
+      ],
+      "id": "7417232c-2e5b-4bda-8979-162fae3bed31",
+      "name": "Code in JavaScript12"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "/data/computational-algorithm-simulator/test/llm_test.clj",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        7824,
+        176
+      ],
+      "id": "3e36895d-33ac-4505-8469-1c5a5ab965fc",
+      "name": "Read/Write Files from Disk6"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "/data/computational-algorithm-simulator/test/mutant_test.clj",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        7072,
+        -256
+      ],
+      "id": "712db691-4264-425e-bb3c-4f3fddb65607",
+      "name": "Read/Write Files from Disk7"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      fileName: $input.first().json.output.name // nome do arquivo\n    },\n    binary: {\n      data: {\n        data: Buffer.from($input.first().json.output.data, 'utf8').toString('base64'), // conteúdo em base64\n        fileName: $input.first().json.output.name, // nome do arquivo\n        mimeType: 'text/plain' // tipo MIME\n      }\n    }\n  }\n];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6848,
+        -336
+      ],
+      "id": "f471d09b-b2f0-4f5e-a585-2a6c342bbef7",
+      "name": "Code in JavaScript13"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Execute Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Command": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Execute Command2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request2": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "HTTP Request3": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request4": {
+      "main": [
+        [
+          {
+            "node": "If3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "AI Agent2": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory2": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If3": {
+      "main": [
+        [
+          {
+            "node": "Execute Command",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Execute Command1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Command1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If4": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript4": {
+      "main": [
+        [
+          {
+            "node": "If4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript5": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk4": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript6": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript7": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk5": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Command2": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk2": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code in JavaScript11",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript8": {
+      "main": [
+        [
+          {
+            "node": "If5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser2": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk3": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Command3": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If6": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript9": {
+      "main": [
+        [
+          {
+            "node": "If6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript10": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript11": {
+      "main": [
+        [
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If5": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge3": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request5": {
+      "main": [
+        [
+          {
+            "node": "If7",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "AI Agent3": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript12",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent3",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser3": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent3",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory3": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent3",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript12": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk6": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk7": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript13": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript13",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If7": {
+      "main": [
+        [
+          {
+            "node": "Execute Command2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Execute Command3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge2": {
+      "main": [
+        [
+          {
+            "node": "AI Agent3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "71a8a8f6-cc2c-4e31-ab28-edbac9ab9a39",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "459b01536cbeed0a07c580efd22cb2ae908025a94f652437f08d811e07a6da65"
+  },
+  "id": "ztPjBw2GrimqMc0L",
+  "tags": []
+}

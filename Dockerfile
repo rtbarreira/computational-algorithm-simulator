@@ -15,7 +15,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 # Atualizar pip e instalar Flask no venv
 RUN pip install --upgrade pip
-RUN pip install flask
+RUN pip install -r requirements.txt
 
 # Copiar api.py
 COPY api.py /app/api.py

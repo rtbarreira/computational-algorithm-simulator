@@ -1,1 +1,4 @@
-./.idea/
+.idea/
+.lein-failures
+mutation.json
+.venv/
